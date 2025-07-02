@@ -25,8 +25,11 @@ SECRET_KEY = 'django-insecure--pm-9@ctk4=2-h6n9uhsz_vbv123gddr7^@82llbms)7g9*yn&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "312f-2409-40d5-107f-f2fe-a40b-ef88-69c2-8a0d.ngrok-free.app", 
+]
 
 # Application definition
 
@@ -55,7 +58,7 @@ ROOT_URLCONF = 'webhook_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "github_webhook" / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -115,8 +118,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
-
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "github_webhook" / "static"]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

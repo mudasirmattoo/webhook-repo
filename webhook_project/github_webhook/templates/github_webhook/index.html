@@ -1,0 +1,180 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-100 text-gray-800 min-h-screen">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Events</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="{% static 'css/output.css' %}" rel="stylesheet">
+</head>
+<body class="font-sans">
+
+  <nav class="bg-white shadow-md w-full py-4 px-6 mb-6">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between">
+      <h1 class="text-2xl font-bold text-blue-600">GitHub Event Dashboard</h1>
+      <span class="text-sm text-gray-500 mt-2 sm:mt-0">Live Activity Feed</span>
+    </div>
+  </nav>
+
+  <main class="flex flex-col items-center px-4 space-y-8 max-w-6xl mx-auto">
+
+    <div class="w-full">
+      <label for="authorFilter" class="block mb-2 text-sm font-medium text-gray-700">Filter by Author</label>
+      <select id="authorFilter" class="bg-white border border-gray-300 text-gray-700 p-2 rounded-md w-full shadow-sm focus:ring focus:ring-blue-200">
+        <option value="">All Authors</option>
+      </select>
+    </div>
+
+    <div id="events" class="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+      <!-- Event cards -->
+    </div>
+
+    <div class="w-full space-y-6">
+      <canvas id="actionChart" class="bg-white p-4 rounded-lg shadow-md w-full"></canvas>
+      <canvas id="timeSeriesChart" class="bg-white p-4 rounded-lg shadow-md w-full"></canvas>
+    </div>
+  </main>
+
+  <script>
+    const eventsContainer = document.getElementById("events");
+    const authorFilter = document.getElementById("authorFilter");
+
+    const actionClasses = {
+      PUSH: "text-blue-600 border-blue-400",
+      PULL_REQUEST: "text-purple-600 border-purple-400",
+      MERGE: "text-green-600 border-green-400",
+    };
+
+    let allEvents = [];
+    let actionChart = null;
+    let timeSeriesChart = null;
+
+    async function fetchEvents() {
+      try {
+        const response = await fetch("/api/events");
+        const events = await response.json();
+        allEvents = events;
+
+        populateAuthorOptions(events);
+        renderCards();
+        updateActionChart(events);
+        updateTimeSeriesChart(events);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    }
+
+    function populateAuthorOptions(events) {
+      const authors = [...new Set(events.map(e => e.author))];
+      authorFilter.innerHTML = '<option value="">All Authors</option>';
+      authors.forEach(author => {
+        const option = document.createElement("option");
+        option.value = author;
+        option.textContent = author;
+        authorFilter.appendChild(option);
+      });
+    }
+
+    function renderCards() {
+      const selected = authorFilter.value;
+      const filtered = selected ? allEvents.filter(e => e.author === selected) : allEvents;
+
+      eventsContainer.innerHTML = "";
+      filtered.slice().reverse().forEach(event => {
+        const actionStyle = actionClasses[event.action] || "text-gray-600 border-gray-300";
+        const card = `
+          <div class="p-4 border-l-4 ${actionStyle} bg-white rounded-lg shadow transition hover:scale-[1.02]">
+            <p class="text-lg font-bold ${actionStyle.split(' ')[0]}">${event.action.replace("_", " ")}</p>
+            <p class="text-sm mt-1">Author: <span class="font-medium">${event.author}</span></p>
+            ${event.repo_name ? `<p class="text-sm">Repository: <span class="font-medium">${event.repo_name}</span></p>` : ""}
+            ${event.from_branch ? `<p class="text-sm">From: ${event.from_branch}</p>` : ""}
+            ${event.to_branch ? `<p class="text-sm">To: ${event.to_branch}</p>` : ""}
+            <p class="text-sm mt-2 text-gray-500">${new Date(event.timestamp).toLocaleString()}</p>
+          </div>
+        `;
+        eventsContainer.insertAdjacentHTML("beforeend", card);
+      });
+    }
+
+    function updateActionChart(events) {
+      const counts = { PUSH: 0, PULL_REQUEST: 0, MERGE: 0 };
+      events.forEach(e => {
+        if (counts[e.action] !== undefined) counts[e.action]++;
+      });
+
+      const ctx = document.getElementById("actionChart").getContext("2d");
+      const colors = ["#3B82F6", "#8B5CF6", "#10B981"];
+
+      if (actionChart) {
+        actionChart.data.datasets[0].data = Object.values(counts);
+        actionChart.update();
+      } else {
+        actionChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: Object.keys(counts),
+            datasets: [{
+              label: "Event Count",
+              data: Object.values(counts),
+              backgroundColor: colors,
+              borderRadius: 6,
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+          }
+        });
+      }
+    }
+
+    function updateTimeSeriesChart(events) {
+      const grouped = {};
+      events.forEach(e => {
+        const date = new Date(e.timestamp).toISOString().slice(0, 10);
+        grouped[date] = (grouped[date] || 0) + 1;
+      });
+
+      const labels = Object.keys(grouped).sort();
+      const values = labels.map(d => grouped[d]);
+      const ctx = document.getElementById("timeSeriesChart").getContext("2d");
+
+      if (timeSeriesChart) {
+        timeSeriesChart.data.labels = labels;
+        timeSeriesChart.data.datasets[0].data = values;
+        timeSeriesChart.update();
+      } else {
+        timeSeriesChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [{
+              label: "Daily Activity",
+              data: values,
+              borderColor: "#10B981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              tension: 0.3,
+              fill: true,
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true, ticks: { stepSize: 1 } },
+              x: { ticks: { autoSkip: true, maxTicksLimit: 10 } }
+            }
+          }
+        });
+      }
+    }
+
+    authorFilter.addEventListener("change", renderCards);
+    fetchEvents();
+    setInterval(fetchEvents, 5000);
+  </script>
+</body>
+</html>
