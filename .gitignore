@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+*.egg
+*.log
+*.pot
+*.pyproj
+*.tmp
+
+# Django specific
+*.sqlite3
+db.sqlite3
+.env
+*.env
+.env.*
+
+# Migrations (optional — keep this if you regenerate often)
+*/migrations/__pycache__/
+*/migrations/*.pyc
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/
+.env/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Pipenv
+Pipfile.lock
+
+# pytest
+.pytest_cache/
+.cache/
+htmlcov/
+
+# Coverage reports
+.coverage
+.tox/
+nosetests.xml
+coverage.xml
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Static/media files (optional if stored in repo)
+staticfiles/
+media/
