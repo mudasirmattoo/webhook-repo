@@ -1,5 +1,5 @@
 ﻿# webhook-repo
-![Dashboard Screenshot](github_webhook/static/images/dashboard.png)
+![Dashboard Screenshot](webhook_project/github_webhook/static/images/dashboard.png)
 
 This is a Django-based web application that receives GitHub webhook events (push, pull request, and merge), stores them in MongoDB Atlas, and displays them on a responsive dashboard with charts and event cards.
 
