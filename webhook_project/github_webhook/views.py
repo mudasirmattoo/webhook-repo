@@ -1,7 +1,7 @@
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from pymongo import MongoClient
+from pymongo import MongoClient  
 from datetime import datetime
 import uuid
 from dotenv import load_dotenv
@@ -15,10 +15,11 @@ password = urllib.parse.quote_plus(os.getenv("MONGODB_PASSWORD"))
 cluster = os.getenv("MONGODB_CLUSTER")
 db_name = os.getenv("MONGODB_DB_NAME")
 
-uri = f"mongodb+srv://{username}:{password}@{cluster}/?retryWrites=true&w=majority&appName={db_name}"
+uri = f"mongodb+srv://{username}:{password}@{cluster}/{db_name}?retryWrites=true&w=majority"
 client = MongoClient(uri)
 db = client[db_name]
 collection = db["events"]
+
 
 # Create your views here.
 @csrf_exempt
@@ -29,6 +30,7 @@ def github_webhook(request):
     try:
         payload = json.loads(request.body.decode("utf-8"))
         event = request.headers.get("X-GitHub-Event")
+
 
         action_type = None
         from_branch = None
@@ -75,12 +77,16 @@ def github_webhook(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 
-
 def get_events(request):
-    events = list(collection.find().sort("timestamp", -1).limit(10))
-    for event in events:
-        event["_id"] = str(event["_id"]) 
-    return JsonResponse(events, safe=False)
+    try:
+        events = list(collection.find().sort("timestamp", -1).limit(10))
+        for event in events:
+            event["_id"] = str(event["_id"])
+        return JsonResponse(events, safe=False)
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch events: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 def event_dashboard(request):
     return render(request, "github_webhook/index.html")
